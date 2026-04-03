@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="description" content="InterviewCrack OS - AI-powered interview feedback and improvement engine">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="InterviewCrack">
+    <title>InterviewCrack OS</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        neon: {
+                            green: '#00ff88',
+                            blue: '#00d4ff',
+                            purple: '#bf00ff',
+                            pink: '#ff0080',
+                            yellow: '#ffdd00'
+                        },
+                        dark: {
+                            900: '#0a0a0f',
+                            800: '#12121a',
+                            700: '#1a1a24',
+                            600: '#22222e',
+                            500: '#2a2a38'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            overscroll-behavior: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .neon-glow-green { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3), 0 0 40px rgba(0, 255, 136, 0.1); }
+        .neon-glow-blue { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1); }
+
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+            stroke-linecap: round;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse-neon {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        @keyframes slideRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-pulse-neon { animation: pulse-neon 2s ease-in-out infinite; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-shake { animation: shake 0.5s ease-in-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        .animate-slide-right { animation: slideRight 0.3s ease-out forwards; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+        .tab-indicator { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-2px); }
+        .card-hover:active { transform: scale(0.98); }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.3s ease;
+        }
+        .toggle-switch.active { background: linear-gradient(135deg, #00ff88, #00d4ff); }
+        .toggle-switch.active::before { transform: translateX(20px); }
+
+        .flashcard { perspective: 1000px; cursor: pointer; }
+        .flashcard-inner {
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { backface-visibility: hidden; }
+        .flashcard-back {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            transform: rotateY(180deg);
+        }
+
+        .input-neon:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+
+        .btn-press:active { transform: scale(0.95); }
+
+        .confetti-piece {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .toast-enter { animation: slideRight 0.3s ease-out forwards; }
+        .toast-exit { animation: slideRight 0.3s ease-out reverse forwards; }
+
+        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 80px); }
+        .nav-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+        details summary { list-style: none; }
+        details summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body class="bg-dark-900">
+
+    <div id="onboarding" class="fixed inset-0 z-50 bg-dark-900 flex items-center justify-center" style="display: none;">
+        <div class="text-center px-6 max-w-md">
+            <div class="animate-float mb-8 inline-block">
+                <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-neon-green to-neon-blue flex items-center justify-center text-5xl neon-glow-green">
+                    ⚡
+                </div>
+            </div>
+            <h1 class="text-3xl font-bold mb-3 bg-gradient-to-r from-neon-green to-neon-blue bg-clip-text text-transparent">
+                InterviewCrack OS
+            </h1>
+            <p class="text-gray-400 mb-8">
+                Your AI-powered interview feedback engine. Fix grammar, fill knowledge gaps, and crack interviews faster.
+            </p>
+            <div class="space-y-4">
+                <button onclick="App.startWithSample()" class="w-full py-4 rounded-2xl glass border border-white/10 text-white font-semibold hover:bg-white/5 transition btn-press">
+                    🎮 Try with Sample Data
+                </button>
+                <button onclick="App.startFresh()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-bold neon-glow-green btn-press">
+                    🚀 Get Started
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-6">Works offline • Data stays on device</p>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <div id="app" class="h-screen flex flex-col" style="display: none;">
+        <header class="flex-shrink-0 glass-strong border-b border-white/5 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-neon-green to-neon-blue flex items-center justify-center text-lg">⚡</div>
+                <div>
+                    <h1 class="font-bold text-sm">InterviewCrack OS</h1>
+                    <p id="header-subtitle" class="text-xs text-gray-500">Dashboard</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="App.toggleSearch()" class="w-9 h-9 rounded-xl glass flex items-center justify-center text-gray-400 hover:text-white transition btn-press" title="Search (Ctrl+K)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </button>
+                <button onclick="App.openSettings()" class="w-9 h-9 rounded-xl glass flex items-center justify-center text-gray-400 hover:text-white transition btn-press" title="Settings">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div id="search-bar" class="px-4 py-3 glass-strong border-b border-white/5" style="display: none;">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search questions, topics, errors..." class="w-full bg-dark-700 border border-white/10 rounded-xl py-3 pl-10 pr-10 text-sm input-neon" oninput="App.handleSearch(this.value)">
+                <button onclick="App.toggleSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="search-results" class="mt-3 space-y-2 max-h-60 overflow-y-auto hide-scrollbar"></div>
+        </div>
+
+        <main id="content" class="flex-1 overflow-y-auto hide-scrollbar safe-bottom">
+            </main>
+
+        <nav class="flex-shrink-0 glass-strong border-t border-white/5 nav-safe">
+            <div class="relative flex justify-around py-2">
+                <div id="tab-indicator" class="absolute top-0 left-0 w-1/5 h-0.5 bg-gradient-to-r from-neon-green to-neon-blue tab-indicator"></div>
+                <button onclick="App.switchTab('dashboard')" class="tab-btn flex flex-col items-center py-2 px-3 transition text-neon-green" data-tab="dashboard">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                    <span class="text-xs">Home</span>
+                </button>
+                <button onclick="App.switchTab('grammar')" class="tab-btn flex flex-col items-center py-2 px-3 transition text-gray-500" data-tab="grammar">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <span class="text-xs">Grammar</span>
+                </button>
+                <button onclick="App.switchTab('technical')" class="tab-btn flex flex-col items-center py-2 px-3 transition text-gray-500" data-tab="technical">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    <span class="text-xs">Tech</span>
+                </button>
+                <button onclick="App.switchTab('qa')" class="tab-btn flex flex-col items-center py-2 px-3 transition text-gray-500" data-tab="qa">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                    <span class="text-xs">Q&A</span>
+                </button>
+                <button onclick="App.switchTab('progress')" class="tab-btn flex flex-col items-center py-2 px-3 transition text-gray-500" data-tab="progress">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span class="text-xs">Progress</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 z-50" style="display: none;">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="App.closeSettings()"></div>
+        <div class="absolute bottom-0 left-0 right-0 bg-dark-800 rounded-t-3xl p-6 animate-slide-up max-h-[80vh] overflow-y-auto">
+            <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6"></div>
+            <h2 class="text-xl font-bold mb-6">Settings</h2>
+            
+            <div class="space-y-4">
+                <button onclick="App.openImportModal()" class="w-full glass rounded-2xl p-4 flex items-center gap-4 card-hover text-left">
+                    <div class="w-10 h-10 rounded-xl bg-neon-green/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-neon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold">Import JSON</p>
+                        <p class="text-sm text-gray-500">Add new interview analysis</p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <button onclick="App.openHistoryModal()" class="w-full glass rounded-2xl p-4 flex items-center gap-4 card-hover text-left">
+                    <div class="w-10 h-10 rounded-xl bg-neon-blue/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold">Interview History</p>
+                        <p class="text-sm text-gray-500">View past analyses</p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <button onclick="App.exportData()" class="w-full glass rounded-2xl p-4 flex items-center gap-4 card-hover text-left">
+                    <div class="w-10 h-10 rounded-xl bg-neon-purple/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-neon-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold">Export Data</p>
+                        <p class="text-sm text-gray-500">Download backup JSON</p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <button onclick="App.clearAllData()" class="w-full glass rounded-2xl p-4 flex items-center gap-4 card-hover text-left border border-red-500/20">
+                    <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-red-400">Clear All Data</p>
+                        <p class="text-sm text-gray-500">This cannot be undone</p>
+                    </div>
+                </button>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-white/5 text-center">
+                <p class="text-xs text-gray-500">InterviewCrack OS v1.0</p>
+                <p class="text-xs text-gray-600 mt-1">Made with ⚡ for interview success</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="import-modal" class="fixed inset-0 z-50" style="display: none;">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="App.closeImportModal()"></div>
+        <div class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg bg-dark-800 rounded-3xl p-6 animate-fade-in-up flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Import Interview JSON</h2>
+                <button onclick="App.closeImportModal()" class="w-8 h-8 rounded-lg glass flex items-center justify-center hover:bg-white/10">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="flex-1 flex flex-col min-h-0">
+                <textarea id="json-input" class="flex-1 w-full bg-dark-700 border border-white/10 rounded-2xl p-4 text-sm mono resize-none input-neon min-h-[200px]" placeholder='Paste your interview analysis JSON here...'></textarea>
+                <div id="json-error" class="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm" style="display: none;"></div>
+                <div class="mt-4 flex gap-3">
+                    <button onclick="App.loadSampleJSON()" class="flex-1 py-3 rounded-xl glass border border-white/10 font-semibold hover:bg-white/5 transition btn-press">
+                        Load Sample
+                    </button>
+                    <button onclick="App.validateAndSave()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-bold btn-press">
+                        Validate & Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="history-modal" class="fixed inset-0 z-50" style="display: none;">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="App.closeHistoryModal()"></div>
+        <div class="absolute bottom-0 left-0 right-0 bg-dark-800 rounded-t-3xl p-6 animate-slide-up max-h-[80vh] overflow-y-auto">
+            <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6"></div>
+            <h2 class="text-xl font-bold mb-6">Interview History</h2>
+            <div id="history-list" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <div id="practice-modal" class="fixed inset-0 z-50" style="display: none;">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="App.closePracticeModal()"></div>
+        <div class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg bg-dark-800 rounded-3xl p-6 animate-fade-in-up flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">Practice Answer</h2>
+                <button onclick="App.closePracticeModal()" class="w-8 h-8 rounded-lg glass flex items-center justify-center hover:bg-white/10">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto min-h-0">
+                <div class="glass rounded-2xl p-4 mb-4">
+                    <p class="text-sm text-gray-400 mb-1">Question:</p>
+                    <p id="practice-question" class="font-medium"></p>
+                </div>
+                <div class="mb-4">
+                    <label class="text-sm text-gray-400 block mb-2">Your Practice Answer:</label>
+                    <textarea id="practice-answer-input" class="w-full h-32 bg-dark-700 border border-white/10 rounded-2xl p-4 text-sm resize-none input-neon" placeholder="Type your STAR answer here..."></textarea>
+                </div>
+                <details class="glass rounded-2xl overflow-hidden">
+                    <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition">
+                        <span class="font-medium text-neon-green">View Ideal STAR Answer</span>
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </summary>
+                    <div class="p-4 pt-0 border-t border-white/5">
+                        <p id="practice-ideal" class="text-sm text-gray-300 leading-relaxed"></p>
+                    </div>
+                </details>
+            </div>
+            <div class="mt-4">
+                <button onclick="App.savePracticeAnswer()" class="w-full py-3 rounded-xl bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-bold btn-press">
+                    Save Progress
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// ============================================
+// MAIN APPLICATION
+// ============================================
+const App = (function() {
+    'use strict';
+
+    // Storage Keys
+    const KEYS = {
+        interviews: 'ic_interviews',
+        currentIdx: 'ic_current_idx',
+        streak: 'ic_streak',
+        lastVisit: 'ic_last_visit',
+        onboarded: 'ic_onboarded',
+        practiceAnswers: 'ic_practice_answers',
+        grammarProgress: 'ic_grammar_progress',
+        technicalProgress: 'ic_technical_progress'
+    };
+
+    // State
+    let state = {
+        currentTab: 'dashboard',
+        interviews: [],
+        currentInterview: null,
+        streak: 0,
+        grammarFilter: 'all',
+        practiceQuestionIdx: null,
+        chartInstance: null
+    };
+
+    // Sample Data
+    const SAMPLE_DATA = {
+        "interview_meta": {
+            "company": "TechCorp Inc.",
+            "role": "Senior Software Engineer",
+            "round": "Technical Round 2",
+            "date": "2025-01-15"
+        },
+        "scores": {
+            "communication": 72,
+            "grammar": 65,
+            "technical": 78,
+            "overall_readiness": 71
+        },
+        "grammar_and_speech": [
+            {
+                "error_type": "Past Tense",
+                "original": "I work on this project last year",
+                "corrected": "I worked on this project last year",
+                "fix_strategy": "Use '-ed' ending for regular past tense verbs. 'Work' becomes 'worked' when referring to completed past actions."
+            },
+            {
+                "error_type": "Subject-Verb Agreement",
+                "original": "The team were responsible for deployment",
+                "corrected": "The team was responsible for deployment",
+                "fix_strategy": "Collective nouns like 'team' take singular verbs in American English."
+            },
+            {
+                "error_type": "Filler Words",
+                "original": "So, basically, um, we implemented the feature",
+                "corrected": "We implemented the feature",
+                "fix_strategy": "Eliminate filler words (um, uh, basically). Pause silently instead."
+            },
+            {
+                "error_type": "Article Usage",
+                "original": "I have experience in the machine learning",
+                "corrected": "I have experience in machine learning",
+                "fix_strategy": "Don't use 'the' before general concepts or fields of study."
+            }
+        ],
+        "technical_gaps": [
+            {
+                "topic": "System Design - Load Balancing",
+                "knowledge_gap": "Unable to explain different load balancing strategies",
+                "study_resource_query": "load balancing algorithms system design"
+            },
+            {
+                "topic": "Python - Async/Await",
+                "knowledge_gap": "Confused about event loop mechanics",
+                "study_resource_query": "python asyncio tutorial"
+            },
+            {
+                "topic": "Database - Indexing",
+                "knowledge_gap": "Could not explain B-tree vs Hash index",
+                "study_resource_query": "database indexing B-tree hash"
+            }
+        ],
+        "questions": [
+            {
+                "question": "Tell me about a challenging project you worked on",
+                "your_answer": "I worked on a payment system. It was hard because of deadlines.",
+                "ideal_star_answer": "Situation: At my previous company, we needed to rebuild our payment system to handle 10x volume. Task: As tech lead, I was responsible for the new architecture. Action: I proposed microservices with event-driven architecture, conducted daily standups, and implemented circuit breakers. Result: We launched early, handled 12x traffic with 99.99% uptime.",
+                "feedback": "Your answer lacks specific details and measurable outcomes. Use STAR format."
+            },
+            {
+                "question": "How would you design a URL shortener?",
+                "your_answer": "I would use a database to store URLs and generate short codes.",
+                "ideal_star_answer": "I'd clarify requirements first - expecting 100M URLs/month. For generation, use base62 encoding of auto-incrementing ID. Architecture: Load balancer → stateless API servers → Redis cache → sharded MySQL. Add analytics, rate limiting.",
+                "feedback": "Good start but needs more depth. Always clarify requirements first."
+            }
+        ],
+        "action_plan": [
+            { "task": "Complete System Design Primer - Load Balancing", "status": "pending" },
+            { "task": "Build async Python project", "status": "pending" },
+            { "task": "Practice STAR format with 5 questions daily", "status": "pending" },
+            { "task": "Review and eliminate filler words", "status": "pending" }
+        ]
+    };
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    function init() {
+        console.log('InterviewCrack OS initializing...');
+        loadState();
+        checkStreak();
+        
+        if (!localStorage.getItem(KEYS.onboarded)) {
+            showElement('onboarding');
+        } else {
+            showElement('app');
+            render();
+        }
+
+        setupKeyboardShortcuts();
+        setupSwipeGestures();
+        console.log('InterviewCrack OS ready!');
+    }
+
+    function loadState() {
+        try {
+            const interviews = localStorage.getItem(KEYS.interviews);
+            const currentIdx = localStorage.getItem(KEYS.currentIdx);
+            const streak = localStorage.getItem(KEYS.streak);
+
+            state.interviews = interviews ? JSON.parse(interviews) : [];
+            state.streak = streak ? parseInt(streak) : 0;
+
+            if (currentIdx !== null && state.interviews[parseInt(currentIdx)]) {
+                state.currentInterview = state.interviews[parseInt(currentIdx)];
+            } else if (state.interviews.length > 0) {
+                state.currentInterview = state.interviews[state.interviews.length - 1];
+            }
+        } catch (e) {
+            console.error('Error loading state:', e);
+            state.interviews = [];
+            state.currentInterview = null;
+        }
+    }
+
+    function saveState() {
+        try {
+            localStorage.setItem(KEYS.interviews, JSON.stringify(state.interviews));
+            localStorage.setItem(KEYS.streak, state.streak.toString());
+            if (state.currentInterview) {
+                const idx = state.interviews.indexOf(state.currentInterview);
+                if (idx >= 0) {
+                    localStorage.setItem(KEYS.currentIdx, idx.toString());
+                }
+            }
+        } catch (e) {
+            console.error('Error saving state:', e);
+        }
+    }
+
+    function checkStreak() {
+        const lastVisit = localStorage.getItem(KEYS.lastVisit);
+        const today = new Date().toDateString();
+
+        if (lastVisit && lastVisit !== today) {
+            const lastDate = new Date(lastVisit);
+            const todayDate = new Date(today);
+            const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+                state.streak++;
+            } else if (diffDays > 1) {
+                state.streak = 1;
+            }
+        } else if (!lastVisit) {
+            state.streak = 1;
+        }
+        
+        localStorage.setItem(KEYS.lastVisit, today);
+        saveState();
+    }
+
+    // ============================================
+    // ONBOARDING
+    // ============================================
+    function startWithSample() {
+        haptic();
+        const sample = JSON.parse(JSON.stringify(SAMPLE_DATA));
+        sample._id = Date.now();
+        state.interviews.push(sample);
+        state.currentInterview = sample;
+        saveState();
+        
+        localStorage.setItem(KEYS.onboarded, 'true');
+        hideElement('onboarding');
+        showElement('app');
+        render();
+        showToast('Sample data loaded!', 'success');
+        triggerConfetti();
+    }
+
+    function startFresh() {
+        haptic();
+        localStorage.setItem(KEYS.onboarded, 'true');
+        hideElement('onboarding');
+        showElement('app');
+        render();
+        openImportModal();
+    }
+
+    // ============================================
+    // TAB NAVIGATION
+    // ============================================
+    function switchTab(tabName) {
+        haptic('light');
+        state.currentTab = tabName;
+        updateTabUI();
+        render();
+    }
+
+    function updateTabUI() {
+        const tabs = ['dashboard', 'grammar', 'technical', 'qa', 'progress'];
+        const idx = tabs.indexOf(state.currentTab);
+        
+        // Update indicator
+        const indicator = document.getElementById('tab-indicator');
+        if (indicator) {
+            indicator.style.transform = `translateX(${idx * 100}%)`;
+        }
+
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+            const isActive = tabs[i] === state.currentTab;
+            btn.classList.toggle('text-neon-green', isActive);
+            btn.classList.toggle('text-gray-500', !isActive);
+        });
+
+        // Update header
+        const subtitles = {
+            dashboard: 'Dashboard',
+            grammar: 'Grammar & Speech',
+            technical: 'Technical Gaps',
+            qa: 'Q&A Simulator',
+            progress: 'Progress Tracking'
+        };
+        const subtitle = document.getElementById('header-subtitle');
+        if (subtitle) {
+            subtitle.textContent = subtitles[state.currentTab];
+        }
+    }
+
+    function render() {
+        const content = document.getElementById('content');
+        if (!content) return;
+        content.scrollTop = 0;
+
+        switch (state.currentTab) {
+            case 'dashboard':
+                content.innerHTML = renderDashboard();
+                setTimeout(animateProgressRings, 100);
+                break;
+            case 'grammar':
+                content.innerHTML = renderGrammar();
+                break;
+            case 'technical':
+                content.innerHTML = renderTechnical();
+                break;
+            case 'qa':
+                content.innerHTML = renderQA();
+                break;
+            case 'progress':
+                content.innerHTML = renderProgress();
+                setTimeout(initChart, 200);
+                break;
+        }
+        updateTabUI();
+    }
+
+    // ============================================
+    // DASHBOARD
+    // ============================================
+    function renderDashboard() {
+        if (!state.currentInterview) {
+            return renderEmptyState('No interview data yet', 'Import your first interview analysis to get started', true);
+        }
+
+        const data = state.currentInterview;
+        const scores = data.scores;
+        const bottleneck = getBottleneck(scores);
+        const masteredCount = getMasteredCount();
+        const totalTechnical = data.technical_gaps?.length || 0;
+        const pendingTasks = data.action_plan?.filter(t => t.status === 'pending').length || 0;
+
+        return `
+            <div class="p-4 space-y-4 pb-8">
+                <div class="glass rounded-2xl p-4 card-hover animate-fade-in-up">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="font-bold text-lg">${escapeHtml(data.interview_meta.company)}</h3>
+                            <p class="text-gray-400 text-sm">${escapeHtml(data.interview_meta.role)}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-xs px-2 py-1 rounded-lg bg-neon-blue/10 text-neon-blue">${escapeHtml(data.interview_meta.round)}</span>
+                                <span class="text-xs text-gray-500">${formatDate(data.interview_meta.date)}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="flex items-center gap-1 text-neon-yellow">
+                                <span class="text-2xl">🔥</span>
+                                <span class="font-bold text-xl">${state.streak}</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Day Streak</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    ${renderScoreRing('Overall', scores.overall_readiness, '#00ff88', 0)}
+                    ${renderScoreRing('Technical', scores.technical, '#00d4ff', 1)}
+                    ${renderScoreRing('Communication', scores.communication, '#bf00ff', 2)}
+                    ${renderScoreRing('Grammar', scores.grammar, '#ff0080', 3)}
+                </div>
+
+                <div class="glass rounded-2xl p-4 border-l-4 border-neon-yellow animate-fade-in-up" style="animation-delay: 200ms">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl animate-pulse-neon">⚠️</span>
+                        <div>
+                            <p class="text-sm text-gray-400">Biggest Bottleneck</p>
+                            <p class="font-bold text-neon-yellow">${bottleneck.name}: ${bottleneck.detail}</p>
+                            <button onclick="App.switchTab('${bottleneck.tab}')" class="mt-2 text-sm text-neon-green hover:underline">
+                                Work on this →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="glass rounded-2xl p-4 text-center card-hover animate-fade-in-up" style="animation-delay: 250ms">
+                        <p class="text-2xl font-bold text-neon-green">${data.grammar_and_speech?.length || 0}</p>
+                        <p class="text-xs text-gray-500 mt-1">Grammar Issues</p>
+                    </div>
+                    <div class="glass rounded-2xl p-4 text-center card-hover animate-fade-in-up" style="animation-delay: 300ms">
+                        <p class="text-2xl font-bold text-neon-blue">${masteredCount}/${totalTechnical}</p>
+                        <p class="text-xs text-gray-500 mt-1">Mastered</p>
+                    </div>
+                    <div class="glass rounded-2xl p-4 text-center card-hover animate-fade-in-up" style="animation-delay: 350ms">
+                        <p class="text-2xl font-bold text-neon-purple">${pendingTasks}</p>
+                        <p class="text-xs text-gray-500 mt-1">Tasks Left</p>
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-4 animate-fade-in-up" style="animation-delay: 400ms">
+                    <h3 class="font-bold mb-3 flex items-center gap-2">
+                        📋 Action Plan
+                    </h3>
+                    <div class="space-y-2">
+                        ${(data.action_plan || []).slice(0, 5).map((task, idx) => `
+                            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition cursor-pointer" onclick="App.toggleTask(${idx})">
+                                <div class="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center ${task.status === 'completed' ? 'bg-neon-green text-dark-900' : 'border-2 border-gray-600'}">
+                                    ${task.status === 'completed' ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                                </div>
+                                <p class="text-sm flex-1 ${task.status === 'completed' ? 'line-through text-gray-500' : ''}">${escapeHtml(task.task)}</p>
+                            </div>
+                        `).join('') || '<p class="text-gray-500 text-sm">No tasks yet</p>'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderScoreRing(label, score, color, delay) {
+        const circumference = 2 * Math.PI * 42;
+        return `
+            <div class="glass rounded-2xl p-4 flex flex-col items-center card-hover animate-fade-in-up" style="animation-delay: ${100 + delay * 50}ms">
+                <div class="relative w-20 h-20">
+                    <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                        <circle class="text-dark-600" stroke="currentColor" stroke-width="8" fill="none" cx="50" cy="50" r="42"/>
+                        <circle class="progress-ring__circle" stroke="${color}" stroke-width="8" fill="none" cx="50" cy="50" r="42" stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}" data-score="${score}" data-circumference="${circumference}" />
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-lg font-bold" style="color: ${color}">${score}</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">${label}</p>
+            </div>
+        `;
+    }
+
+    function animateProgressRings() {
+        document.querySelectorAll('.progress-ring__circle').forEach(circle => {
+            const score = parseFloat(circle.dataset.score);
+            const circumference = parseFloat(circle.dataset.circumference);
+            const offset = circumference - (score / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        });
+    }
+
+    function getBottleneck(scores) {
+        const items = [
+            { key: 'grammar', name: 'Grammar', tab: 'grammar', detail: 'Tense & filler words' },
+            { key: 'technical', name: 'Technical', tab: 'technical', detail: 'Knowledge gaps' },
+            { key: 'communication', name: 'Communication', tab: 'qa', detail: 'STAR format needed' }
+        ];
+        let lowest = items[0];
+        items.forEach(item => {
+            if ((scores[item.key] || 0) < (scores[lowest.key] || 0)) {
+                lowest = item;
+            }
+        });
+        return lowest;
+    }
+
+    function getMasteredCount() {
+        const progress = getTechnicalProgress();
+        return Object.values(progress).filter(v => v === 'mastered').length;
+    }
+
+    function toggleTask(idx) {
+        haptic();
+        if (!state.currentInterview?.action_plan?.[idx]) return;
+        
+        const task = state.currentInterview.action_plan[idx];
+        task.status = task.status === 'completed' ? 'pending' : 'completed';
+        saveState();
+        render();
+        
+        if (task.status === 'completed') {
+            showToast('Task completed! 🎉', 'success');
+        }
+    }
+
+    // ============================================
+    // GRAMMAR TAB
+    // ============================================
+    function renderGrammar() {
+        const errors = state.currentInterview?.grammar_and_speech;
+        if (!errors || errors.length === 0) {
+            return renderEmptyState('No grammar issues found', 'Your speech patterns look good!', false);
+        }
+
+        const errorTypes = [...new Set(errors.map(e => e.error_type))];
+        const grammarProgress = getGrammarProgress();
+        const filteredErrors = state.grammarFilter === 'all' 
+            ? errors 
+            : errors.filter(e => e.error_type === state.grammarFilter);
+
+        return `
+            <div class="p-4 space-y-4 pb-8">
+                <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+                    <button onclick="App.filterGrammar('all')" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${state.grammarFilter === 'all' ? 'bg-neon-green text-dark-900' : 'glass text-gray-400 hover:text-white'}">
+                        All (${errors.length})
+                    </button>
+                    ${errorTypes.map(type => `
+                        <button onclick="App.filterGrammar('${escapeHtml(type)}')" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${state.grammarFilter === type ? 'bg-neon-green text-dark-900' : 'glass text-gray-400 hover:text-white'}">
+                            ${escapeHtml(type)}
+                        </button>
+                    `).join('')}
+                </div>
+
+                <div class="space-y-3">
+                    ${filteredErrors.map((error, idx) => {
+                        const originalIdx = errors.indexOf(error);
+                        const isReviewed = grammarProgress[originalIdx] === 'reviewed';
+                        return `
+                            <div class="flashcard animate-fade-in-up" style="animation-delay: ${idx * 50}ms" id="flashcard-${originalIdx}">
+                                <div class="flashcard-inner">
+                                    <div class="flashcard-front glass rounded-2xl p-4 ${isReviewed ? 'border border-neon-green/30' : ''}" onclick="App.flipCard(${originalIdx})">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <span class="text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400">${escapeHtml(error.error_type)}</span>
+                                            ${isReviewed ? '<span class="text-neon-green text-xs">✓ Reviewed</span>' : '<span class="text-xs text-gray-500">Tap to flip</span>'}
+                                        </div>
+                                        <div class="space-y-3">
+                                            <div>
+                                                <p class="text-xs text-gray-500 mb-1">Original ❌</p>
+                                                <p class="text-red-400 mono text-sm">"${escapeHtml(error.original)}"</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs text-gray-500 mb-1">Corrected ✅</p>
+                                                <p class="text-neon-green mono text-sm">"${escapeHtml(error.corrected)}"</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flashcard-back glass rounded-2xl p-4" onclick="App.flipCard(${originalIdx})">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <span class="text-xs px-2 py-1 rounded-lg bg-neon-blue/10 text-neon-blue">Fix Strategy</span>
+                                            <span class="text-xs text-gray-500">Tap to flip back</span>
+                                        </div>
+                                        <p class="text-sm leading-relaxed mb-4">${escapeHtml(error.fix_strategy)}</p>
+                                        <button onclick="event.stopPropagation(); App.markGrammarReviewed(${originalIdx})" class="w-full py-2 rounded-xl ${isReviewed ? 'bg-gray-700 text-gray-400' : 'bg-neon-green/10 text-neon-green hover:bg-neon-green/20'} text-sm font-medium transition">
+                                            ${isReviewed ? '✓ Reviewed' : 'Mark as Reviewed'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function flipCard(idx) {
+        haptic('light');
+        const card = document.getElementById(`flashcard-${idx}`);
+        if (card) {
+            card.classList.toggle('flipped');
+        }
+    }
+
+    function filterGrammar(type) {
+        haptic('light');
+        state.grammarFilter = type;
+        render();
+    }
+
+    function getGrammarProgress() {
+        try {
+            const all = JSON.parse(localStorage.getItem(KEYS.grammarProgress) || '{}');
+            return all[state.currentInterview?._id] || {};
+        } catch (e) { return {}; }
+    }
+
+    function markGrammarReviewed(idx) {
+        haptic();
+        const all = JSON.parse(localStorage.getItem(KEYS.grammarProgress) || '{}');
+        const id = state.currentInterview?._id;
+        if (!all[id]) all[id] = {};
+        
+        all[id][idx] = 'reviewed';
+        localStorage.setItem(KEYS.grammarProgress, JSON.stringify(all));
+        showToast('Marked as reviewed!', 'success');
+        render();
+    }
+
+    // ============================================
+    // TECHNICAL TAB
+    // ============================================
+    function renderTechnical() {
+        const gaps = state.currentInterview?.technical_gaps;
+        if (!gaps || gaps.length === 0) {
+            return renderEmptyState('No technical gaps found', 'Great technical knowledge!', false);
+        }
+
+        const progress = getTechnicalProgress();
+        const toLearn = [];
+        const mastered = [];
+
+        gaps.forEach((gap, idx) => {
+            if (progress[idx] === 'mastered') {
+                mastered.push({ gap, idx });
+            } else {
+                toLearn.push({ gap, idx });
+            }
+        });
+
+        return `
+            <div class="p-4 space-y-4 pb-8">
+                <div class="glass rounded-2xl p-4 animate-fade-in-up">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="font-bold">Learning Progress</span>
+                        <span class="text-neon-green font-bold">${mastered.length}/${gaps.length} Mastered</span>
+                    </div>
+                    <div class="h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-neon-green to-neon-blue transition-all duration-500" style="width: ${gaps.length > 0 ? (mastered.length / gaps.length) * 100 : 0}%"></div>
+                    </div>
+                </div>
+
+                ${toLearn.length > 0 ? `
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-neon-yellow"></span> To Learn (${toLearn.length})
+                        </h3>
+                        <div class="space-y-3">
+                            ${toLearn.map(({ gap, idx }, i) => renderTechnicalCard(gap, idx, false, i)).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${mastered.length > 0 ? `
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-neon-green"></span> Mastered (${mastered.length})
+                        </h3>
+                        <div class="space-y-3">
+                            ${mastered.map(({ gap, idx }, i) => renderTechnicalCard(gap, idx, true, i)).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    function renderTechnicalCard(gap, idx, isMastered, animDelay) {
+        return `
+            <div class="glass rounded-2xl p-4 card-hover animate-fade-in-up ${isMastered ? 'border border-neon-green/20' : ''}" style="animation-delay: ${animDelay * 50}ms">
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-bold text-sm flex-1 pr-2">${escapeHtml(gap.topic)}</h4>
+                    <div onclick="App.toggleTechnical(${idx})" class="toggle-switch ${isMastered ? 'active' : 'bg-dark-600'}"></div>
+                </div>
+                <p class="text-sm text-gray-400 mb-3">${escapeHtml(gap.knowledge_gap)}</p>
+                <a href="https://www.google.com/search?q=${encodeURIComponent(gap.study_resource_query)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm text-neon-blue hover:text-neon-green transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    Study Resources
+                </a>
+            </div>
+        `;
+    }
+
+    function getTechnicalProgress() {
+        try {
+            const all = JSON.parse(localStorage.getItem(KEYS.technicalProgress) || '{}');
+            return all[state.currentInterview?._id] || {};
+        } catch (e) { return {}; }
+    }
+
+    function toggleTechnical(idx) {
+        haptic();
+        const all = JSON.parse(localStorage.getItem(KEYS.technicalProgress) || '{}');
+        const id = state.currentInterview?._id;
+        if (!all[id]) all[id] = {};
+        
+        const newStatus = all[id][idx] === 'mastered' ? 'learning' : 'mastered';
+        all[id][idx] = newStatus;
+        
+        localStorage.setItem(KEYS.technicalProgress, JSON.stringify(all));
+        if (newStatus === 'mastered') {
+            showToast('Topic mastered! 🎓', 'success');
+            triggerConfetti();
+        }
+        render();
+    }
+
+    // ============================================
+    // Q&A TAB
+    // ============================================
+    function renderQA() {
+        const questions = state.currentInterview?.questions;
+        if (!questions || questions.length === 0) {
+            return renderEmptyState('No questions found', 'Import an interview analysis to practice Q&A', true);
+        }
+
+        const practiceAnswers = getPracticeAnswers();
+
+        return `
+            <div class="p-4 space-y-4 pb-8">
+                ${questions.map((q, idx) => `
+                    <div class="glass rounded-2xl overflow-hidden animate-fade-in-up" style="animation-delay: ${idx * 100}ms">
+                        <div class="p-4 border-b border-white/5">
+                            <div class="flex items-start gap-3">
+                                <span class="w-8 h-8 rounded-xl bg-neon-purple/10 text-neon-purple flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    Q${idx + 1}
+                                </span>
+                                <p class="font-medium leading-relaxed">${escapeHtml(q.question)}</p>
+                            </div>
+                        </div>
+                        <div class="divide-y divide-white/5">
+                            <details class="group">
+                                <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition">
+                                    <span class="text-sm text-gray-400">Your Answer</span>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </summary>
+                                <div class="px-4 pb-4">
+                                    <div class="p-3 rounded-xl bg-red-500/5 border border-red-500/20">
+                                        <p class="text-sm text-red-300">${escapeHtml(q.your_answer)}</p>
+                                    </div>
+                                </div>
+                            </details>
+                            
+                            <details class="group">
+                                <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition">
+                                    <span class="text-sm text-gray-400">Ideal STAR Answer</span>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </summary>
+                                <div class="px-4 pb-4">
+                                    <div class="p-3 rounded-xl bg-neon-green/5 border border-neon-green/20">
+                                        <p class="text-sm text-neon-green leading-relaxed">${escapeHtml(q.ideal_star_answer)}</p>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <details class="group">
+                                <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition">
+                                    <span class="text-sm text-gray-400">Feedback</span>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </summary>
+                                <div class="px-4 pb-4">
+                                    <div class="p-3 rounded-xl bg-neon-blue/5 border border-neon-blue/20">
+                                        <p class="text-sm text-neon-blue">${escapeHtml(q.feedback)}</p>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        <div class="p-4 border-t border-white/5">
+                            <button onclick="App.openPracticeModal(${idx})" class="w-full py-3 rounded-xl bg-gradient-to-r from-neon-green/10 to-neon-blue/10 border border-neon-green/20 text-neon-green font-semibold flex items-center justify-center gap-2 btn-press hover:from-neon-green/20 hover:to-neon-blue/20 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                Practice Answer
+                                ${practiceAnswers[idx] ? '<span class="ml-2 w-2 h-2 rounded-full bg-neon-green"></span>' : ''}
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function getPracticeAnswers() {
+        try {
+            const all = JSON.parse(localStorage.getItem(KEYS.practiceAnswers) || '{}');
+            return all[state.currentInterview?._id] || {};
+        } catch (e) { return {}; }
+    }
+
+    function openPracticeModal(idx) {
+        haptic();
+        state.practiceQuestionIdx = idx;
+        const q = state.currentInterview.questions[idx];
+        const practiceAnswers = getPracticeAnswers();
+        
+        document.getElementById('practice-question').textContent = q.question;
+        document.getElementById('practice-ideal').textContent = q.ideal_star_answer;
+        document.getElementById('practice-answer-input').value = practiceAnswers[idx] || '';
+        
+        showElement('practice-modal');
+    }
+
+    function closePracticeModal() {
+        hideElement('practice-modal');
+    }
+
+    function savePracticeAnswer() {
+        haptic();
+        const answer = document.getElementById('practice-answer-input').value.trim();
+        if (!answer) {
+            showToast('Please enter an answer', 'error');
+            return;
+        }
+
+        const all = JSON.parse(localStorage.getItem(KEYS.practiceAnswers) || '{}');
+        const id = state.currentInterview?._id;
+        if (!all[id]) all[id] = {};
+        
+        all[id][state.practiceQuestionIdx] = answer;
+        localStorage.setItem(KEYS.practiceAnswers, JSON.stringify(all));
+        
+        closePracticeModal();
+        showToast('Practice answer saved!', 'success');
+        render();
+    }
+
+    // ============================================
+    // PROGRESS TAB
+    // ============================================
+    function renderProgress() {
+        if (state.interviews.length === 0) {
+            return renderEmptyState('No progress data yet', 'Import multiple interviews to track improvement', true);
+        }
+
+        const interviews = state.interviews.slice(-10);
+        const avgScore = getAverageScore();
+
+        return `
+            <div class="p-4 space-y-4 pb-8">
+                <div class="glass rounded-2xl p-4 animate-fade-in-up">
+                    <h3 class="font-bold mb-4">Score Trends</h3>
+                    <div class="h-64 relative">
+                        <canvas id="progress-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass rounded-2xl p-4 animate-fade-in-up" style="animation-delay: 100ms">
+                        <p class="text-sm text-gray-400">Total Interviews</p>
+                        <p class="text-3xl font-bold text-neon-green mt-1">${state.interviews.length}</p>
+                    </div>
+                    <div class="glass rounded-2xl p-4 animate-fade-in-up" style="animation-delay: 150ms">
+                        <p class="text-sm text-gray-400">Avg Readiness</p>
+                        <p class="text-3xl font-bold text-neon-blue mt-1">${avgScore}%</p>
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-4 animate-fade-in-up" style="animation-delay: 200ms">
+                    <h3 class="font-bold mb-4">Recent Interviews</h3>
+                    <div class="space-y-3">
+                        ${[...interviews].reverse().map((interview, i) => {
+                            const originalIdx = state.interviews.length - 1 - i;
+                            return `
+                                <div class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition cursor-pointer" onclick="App.loadInterview(${originalIdx})">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-green/20 to-neon-blue/20 flex items-center justify-center font-bold text-sm">
+                                            ${interview.scores?.overall_readiness || 0}
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-sm">${escapeHtml(interview.interview_meta?.company || 'Unknown')}</p>
+                                            <p class="text-xs text-gray-500">${escapeHtml(interview.interview_meta?.role || '')}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-gray-500">${formatDate(interview.interview_meta?.date)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function initChart() {
+        const canvas = document.getElementById('progress-chart');
+        if (!canvas) return;
+
+        if (state.chartInstance) {
+            state.chartInstance.destroy();
+            state.chartInstance = null;
+        }
+
+        const interviews = state.interviews.slice(-10);
+        if (interviews.length === 0) return;
+
+        const labels = interviews.map(i => formatDate(i.interview_meta?.date, true));
+        
+        try {
+            state.chartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Overall',
+                            data: interviews.map(i => i.scores?.overall_readiness || 0),
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#00ff88'
+                        },
+                        {
+                            label: 'Technical',
+                            data: interviews.map(i => i.scores?.technical || 0),
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'transparent',
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#00d4ff'
+                        },
+                        {
+                            label: 'Grammar',
+                            data: interviews.map(i => i.scores?.grammar || 0),
+                            borderColor: '#ff0080',
+                            backgroundColor: 'transparent',
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#ff0080'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#9ca3af',
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        } catch (e) {
+            console.error('Error creating chart:', e);
+        }
+    }
+
+    function getAverageScore() {
+        if (state.interviews.length === 0) return 0;
+        const sum = state.interviews.reduce((acc, i) => acc + (i.scores?.overall_readiness || 0), 0);
+        return Math.round(sum / state.interviews.length);
+    }
+
+    function loadInterview(idx) {
+        haptic();
+        if (state.interviews[idx]) {
+            state.currentInterview = state.interviews[idx];
+            localStorage.setItem(KEYS.currentIdx, idx.toString());
+            switchTab('dashboard');
+            showToast('Interview loaded!', 'success');
+        }
+    }
+
+    // ============================================
+    // MODALS & SETTINGS
+    // ============================================
+    function openSettings() { haptic(); showElement('settings-modal'); }
+    function closeSettings() { hideElement('settings-modal'); }
+
+    function openImportModal() {
+        closeSettings();
+        document.getElementById('json-input').value = '';
+        hideElement('json-error');
+        showElement('import-modal');
+        setTimeout(() => document.getElementById('json-input').focus(), 100);
+    }
+    
+    function closeImportModal() { hideElement('import-modal'); }
+
+    function loadSampleJSON() {
+        document.getElementById('json-input').value = JSON.stringify(SAMPLE_DATA, null, 2);
+        hideElement('json-error');
+    }
+
+    function validateAndSave() {
+        haptic();
+        const input = document.getElementById('json-input').value.trim();
+        const errorEl = document.getElementById('json-error');
+
+        if (!input) {
+            showError(errorEl, 'Please paste JSON data');
+            return;
+        }
+
+        try {
+            const data = JSON.parse(input);
+            
+            // Basic validation
+            if (!data.interview_meta) { throw new Error('Missing interview_meta'); }
+            if (!data.scores) { throw new Error('Missing scores'); }
+            if (!data.interview_meta.company || !data.interview_meta.role) {
+                throw new Error('interview_meta must have company and role');
+            }
+
+            // Add ID
+            data._id = Date.now();
+
+            // Save
+            state.interviews.push(data);
+            state.currentInterview = data;
+            saveState();
+            
+            closeImportModal();
+            showToast('Interview imported successfully!', 'success');
+            triggerConfetti();
+            render();
+
+        } catch (e) {
+            showError(errorEl, 'Invalid JSON: ' + e.message);
+            document.getElementById('json-input').classList.add('animate-shake');
+            setTimeout(() => {
+                document.getElementById('json-input').classList.remove('animate-shake');
+            }, 500);
+        }
+    }
+
+    function showError(el, msg) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    function openHistoryModal() {
+        closeSettings();
+        const historyList = document.getElementById('history-list');
+        
+        if (state.interviews.length === 0) {
+            historyList.innerHTML = '<p class="text-center text-gray-500 py-8">No interview history yet</p>';
+        } else {
+            historyList.innerHTML = state.interviews.map((interview, idx) => `
+                <div class="glass rounded-2xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3 cursor-pointer flex-1" onclick="App.loadInterview(${idx}); App.closeHistoryModal();">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-green/20 to-neon-blue/20 flex items-center justify-center">
+                            <span class="font-bold">${interview.scores?.overall_readiness || 0}</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">${escapeHtml(interview.interview_meta?.company || 'Unknown')}</p>
+                            <p class="text-sm text-gray-500">${escapeHtml(interview.interview_meta?.role || '')}</p>
+                            <p class="text-xs text-gray-600">${formatDate(interview.interview_meta?.date)}</p>
+                        </div>
+                    </div>
+                    <button onclick="App.deleteInterview(${idx})" class="w-10 h-10 rounded-xl glass flex items-center justify-center text-red-400 hover:bg-red-500/10 transition ml-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+        showElement('history-modal');
+    }
+
+    function closeHistoryModal() { hideElement('history-modal'); }
+
+    function deleteInterview(idx) {
+        haptic();
+        if (confirm('Delete this interview analysis?')) {
+            state.interviews.splice(idx, 1);
+            if (state.interviews.length === 0) {
+                state.currentInterview = null;
+            } else {
+                state.currentInterview = state.interviews[state.interviews.length - 1];
+            }
+            saveState();
+            openHistoryModal();
+            render();
+            showToast('Interview deleted', 'info');
+        }
+    }
+
+    function exportData() {
+        haptic();
+        const data = {
+            version: '1.0',
+            exported_at: new Date().toISOString(),
+            interviews: state.interviews,
+            streak: state.streak,
+            technical_progress: JSON.parse(localStorage.getItem(KEYS.technicalProgress) || '{}'),
+            grammar_progress: JSON.parse(localStorage.getItem(KEYS.grammarProgress) || '{}'),
+            practice_answers: JSON.parse(localStorage.getItem(KEYS.practiceAnswers) || '{}')
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `interviewcrack-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast('Data exported!', 'success');
+        closeSettings();
+    }
+
+    function clearAllData() {
+        haptic();
+        if (confirm('Delete ALL data? This cannot be undone!')) {
+            if (confirm('Are you really sure?')) {
+                localStorage.clear();
+                state = {
+                    currentTab: 'dashboard',
+                    interviews: [],
+                    currentInterview: null,
+                    streak: 0,
+                    grammarFilter: 'all',
+                    practiceQuestionIdx: null,
+                    chartInstance: null
+                };
+                closeSettings();
+                hideElement('app');
+                showElement('onboarding');
+                showToast('All data cleared', 'info');
+            }
+        }
+    }
+
+    // ============================================
+    // SEARCH
+    // ============================================
+    function toggleSearch() {
+        haptic('light');
+        const searchBar = document.getElementById('search-bar');
+        const isHidden = searchBar.style.display === 'none';
+        
+        if (isHidden) {
+            showElement('search-bar');
+            document.getElementById('search-input').focus();
+        } else {
+            hideElement('search-bar');
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-results').innerHTML = '';
+        }
+    }
+
+    function handleSearch(query) {
+        const resultsContainer = document.getElementById('search-results');
+        query = query.toLowerCase().trim();
+        
+        if (!query) {
+            resultsContainer.innerHTML = '';
+            return;
+        }
+
+        const results = [];
+        
+        if (state.currentInterview) {
+            // Search questions
+            (state.currentInterview.questions || []).forEach((q, idx) => {
+                if (q.question.toLowerCase().includes(query)) {
+                    results.push({ type: 'question', title: q.question.substring(0, 40) + '...', tab: 'qa', icon: '❓' });
+                }
+            });
+
+            // Search technical gaps
+            (state.currentInterview.technical_gaps || []).forEach((g, idx) => {
+                if (g.topic.toLowerCase().includes(query)) {
+                    results.push({ type: 'technical', title: g.topic, tab: 'technical', icon: '💡' });
+                }
+            });
+
+            // Search grammar
+            (state.currentInterview.grammar_and_speech || []).forEach((g, idx) => {
+                if (g.error_type.toLowerCase().includes(query) || g.original.toLowerCase().includes(query)) {
+                    results.push({ type: 'grammar', title: `${g.error_type}: ${g.original.substring(0, 25)}...`, tab: 'grammar', icon: '✏️' });
+                }
+            });
+        }
+
+        if (results.length === 0) {
+            resultsContainer.innerHTML = '<p class="text-center text-gray-500 py-4">No results found</p>';
+        } else {
+            resultsContainer.innerHTML = results.slice(0, 5).map(r => `
+                <button onclick="App.switchTab('${r.tab}'); App.toggleSearch();" class="w-full glass rounded-xl p-3 flex items-center gap-3 hover:bg-white/5 transition text-left">
+                    <span class="text-lg">${r.icon}</span>
+                    <span class="text-sm truncate">${escapeHtml(r.title)}</span>
+                </button>
+            `).join('');
+        }
+    }
+
+    // ============================================
+    // UTILITIES
+    // ============================================
+    function renderEmptyState(title, subtitle, showButton) {
+        return `
+            <div class="h-full flex flex-col items-center justify-center p-8 text-center">
+                <div class="w-24 h-24 rounded-3xl glass flex items-center justify-center text-5xl mb-6 animate-float">
+                    📭
+                </div>
+                <h3 class="text-xl font-bold mb-2">${title}</h3>
+                <p class="text-gray-500 mb-6 max-w-sm">${subtitle}</p>
+                ${showButton ? `
+                    <button onclick="App.openImportModal()" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-bold btn-press">
+                        Import JSON
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    function formatDate(dateStr, short = false) {
+        if (!dateStr) return 'Unknown';
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr;
+            if (short) {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;'); // Crucial fix for inline onclick attributes
+    }
+
+    function showElement(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = '';
+    }
+
+    function hideElement(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    }
+
+    function haptic(type = 'medium') {
+        try {
+            if ('vibrate' in navigator) {
+                const patterns = { light: 10, medium: 20, heavy: 30 };
+                navigator.vibrate(patterns[type] || 20);
+            }
+        } catch (e) {}
+    }
+
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        
+        const colors = {
+            success: 'border-l-4 border-neon-green bg-neon-green/10',
+            error: 'border-l-4 border-red-500 bg-red-500/10',
+            info: 'border-l-4 border-neon-blue bg-neon-blue/10'
+        };
+        
+        const icons = { success: '✓', error: '✕', info: 'ℹ' };
+
+        toast.className = `toast-enter glass rounded-xl p-4 flex items-center gap-3 ${colors[type]} pointer-events-auto`;
+        toast.innerHTML = `<span class="text-lg">${icons[type]}</span><span class="text-sm">${escapeHtml(message)}</span>`;
+        
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('toast-exit');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function triggerConfetti() {
+        const colors = ['#00ff88', '#00d4ff', '#bf00ff', '#ff0080', '#ffdd00'];
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti-piece';
+                confetti.style.left = (Math.random() * 100) + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `confetti-fall ${2 + Math.random() * 2}s ease-out forwards`;
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }, i * 50);
+        }
+    }
+
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Escape closes modals
+            if (e.key === 'Escape') {
+                closeSettings();
+                closeImportModal();
+                closeHistoryModal();
+                closePracticeModal();
+                hideElement('search-bar');
+            }
+
+            // Ctrl+K for search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                toggleSearch();
+            }
+
+            // Ctrl+I for import
+            if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                e.preventDefault();
+                openImportModal();
+            }
+
+            // Number keys for tabs (when not in input)
+            if (!e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                const tabs = ['dashboard', 'grammar', 'technical', 'qa', 'progress'];
+                const num = parseInt(e.key);
+                if (num >= 1 && num <= 5) {
+                    switchTab(tabs[num - 1]);
+                }
+            }
+        });
+    }
+
+    function setupSwipeGestures() {
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const content = document.getElementById('content');
+        if (!content) return;
+
+        content.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        content.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const diff = touchStartX - touchEndX;
+            const threshold = 80;
+            const tabs = ['dashboard', 'grammar', 'technical', 'qa', 'progress'];
+            const currentIdx = tabs.indexOf(state.currentTab);
+
+            if (Math.abs(diff) > threshold) {
+                if (diff > 0 && currentIdx < tabs.length - 1) {
+                    switchTab(tabs[currentIdx + 1]);
+                } else if (diff < 0 && currentIdx > 0) {
+                    switchTab(tabs[currentIdx - 1]);
+                }
+            }
+        }
+    }
+
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Public API
+    return {
+        switchTab,
+        startWithSample,
+        startFresh,
+        openSettings,
+        closeSettings,
+        openImportModal,
+        closeImportModal,
+        loadSampleJSON,
+        validateAndSave,
+        openHistoryModal,
+        closeHistoryModal,
+        openPracticeModal,
+        closePracticeModal,
+        savePracticeAnswer,
+        toggleSearch,
+        handleSearch,
+        exportData,
+        clearAllData,
+        toggleTask,
+        flipCard,
+        filterGrammar,
+        markGrammarReviewed,
+        toggleTechnical,
+        loadInterview,
+        deleteInterview
+    };
+
+})();
+    </script>
+</body>
+</html>
